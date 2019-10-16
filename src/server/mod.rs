@@ -53,13 +53,13 @@ pub struct mbtree_payload {
 
 impl db {
     fn put(&mut self, key: String, value: String) {
-        let path = "_path_for_rocksdb_storage1";
+        let path = "rocksdb";
         let db = DB::open_default(path).unwrap();
         db.put(key.as_bytes(), value.as_bytes()).unwrap();
     }
 
     fn get(&mut self, key: String) -> String {
-        let path = "_path_for_rocksdb_storage1";
+        let path = "rocksdb";
         let db = DB::open_default(path).unwrap();
         let r: Result<Option<DBVector>, Error> = db.get(key.as_str());
         match r {
@@ -72,7 +72,7 @@ impl db {
     }
 
     fn delete(&mut self, key: String) {
-        let path = "_path_for_rocksdb_storage1";
+        let path = "rocksdb";
         let db = DB::open_default(path).unwrap();
         db.delete(key.as_bytes()).unwrap();
     }
