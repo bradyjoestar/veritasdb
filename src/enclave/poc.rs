@@ -62,7 +62,6 @@ impl Merklebtree {
         for (key, version) in self.hash_map.iter() {
             string.push_str(key.as_str())
         }
-        println!("{}", string);
 
         let hash = digest::digest(&digest::SHA256, string.as_ref());
         let hex = hex::encode(hash);
