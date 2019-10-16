@@ -8,8 +8,6 @@ mod client;
 mod db;
 mod enclave;
 pub mod server;
-
-use crate::enclave::poc::new_mbtree;
 use server::*;
 
 pub fn main() {

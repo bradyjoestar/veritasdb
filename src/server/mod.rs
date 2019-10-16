@@ -1,6 +1,6 @@
 use crate::client::*;
 use crate::db::*;
-use crate::enclave::poc::*;
+use crate::enclave::real_mbtree::*;
 use hex;
 use hmac::Key;
 use ring::{hmac, rand};
@@ -145,7 +145,7 @@ impl server {
             ctr: get_result.version + 1,
         };
         let store_string = serde_json::to_string(&store_data).unwrap();
-        self.db.put(req.key.clone(), store_string);
+        self.db.put(req.key.clone(), store_string.clone());
 
         //update present if there is no error
         self.present_mbtree.build_with_key_value(key_version {
