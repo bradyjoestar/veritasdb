@@ -17,8 +17,7 @@ pub struct server {
     deleted_mbtree: Merklebtree,
 }
 
-pub struct db {
-}
+pub struct db {}
 
 //hmacPayload is used to compute hmac
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -80,8 +79,7 @@ impl db {
 }
 
 pub fn new_server(key_value: Vec<u8>) -> server {
-    let db = db {
-    };
+    let db = db {};
 
     let s_key = hmac::Key::new(hmac::HMAC_SHA256, key_value.as_ref());
     server {
