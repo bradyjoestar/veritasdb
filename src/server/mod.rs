@@ -18,7 +18,6 @@ pub struct server {
 }
 
 pub struct db {
-    dbhandle: HashMap<String, String>,
 }
 
 //hmacPayload is used to compute hmac
@@ -55,22 +54,33 @@ pub struct mbtree_payload {
 
 impl db {
     fn put(&mut self, key: String, value: String) {
-        self.dbhandle.insert(key, value);
+        let path = "_path_for_rocksdb_storage1";
+        let db = DB::open_default(path).unwrap();
+        db.put(key.as_bytes(), value.as_bytes()).unwrap();
     }
+
     fn get(&mut self, key: String) -> String {
-        match self.dbhandle.get(&key) {
-            Some(t) => t.to_string(),
-            None => String::new(),
+        let path = "_path_for_rocksdb_storage1";
+        let db = DB::open_default(path).unwrap();
+        let r: Result<Option<DBVector>, Error> = db.get(key.as_str());
+        match r {
+            Err(t) => return String::new(),
+            Ok(t) => match t {
+                None => return String::new(),
+                Some(t) => return t.to_utf8().unwrap().to_string(),
+            },
         }
     }
+
     fn delete(&mut self, key: String) {
-        self.dbhandle.remove(&key);
+        let path = "_path_for_rocksdb_storage1";
+        let db = DB::open_default(path).unwrap();
+        db.delete(key.as_bytes()).unwrap();
     }
 }
 
 pub fn new_server(key_value: Vec<u8>) -> server {
     let db = db {
-        dbhandle: HashMap::new(),
     };
 
     let s_key = hmac::Key::new(hmac::HMAC_SHA256, key_value.as_ref());

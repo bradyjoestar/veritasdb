@@ -8,10 +8,11 @@ mod client;
 mod db;
 mod enclave;
 pub mod server;
+use rocksdb::{DBVector, Error, WriteBatch, DB};
 use server::*;
 
 pub fn main() {
-    //generate the key_value of hmac key
+    //    generate the key_value of hmac key
     let mut key_value = Vec::new();
     for i in 0..32 {
         key_value.push(i as u8)

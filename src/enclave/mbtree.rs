@@ -40,6 +40,7 @@ impl CalculateHash for key_version {
     fn calculate(&self) -> String {
         let mut s1 = String::new();
         s1.push_str(self.key.as_str());
+        s1.push_str("-");
         s1.push_str(self.version.to_string().as_str());
 
         let hash = digest::digest(&digest::SHA256, s1.as_ref());
