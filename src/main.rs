@@ -8,6 +8,5 @@ mod enclave;
 mod server;
 
 pub fn main() {
-    server::db_test();
-    enclave::real::enclave_test();
+    enclave::enclave_test();
 }
