@@ -5,10 +5,11 @@ extern crate serde;
 extern crate serde_json;
 
 mod client;
-mod db;
+
+use parking_lot::RwLock;
 mod enclave;
 pub mod server;
-use rocksdb::{DBVector, Error, WriteBatch, DB};
+use rocksdb::{DBVector, WriteBatch, DB};
 use server::*;
 
 pub fn main() {

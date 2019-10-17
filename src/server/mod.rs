@@ -1,23 +1,22 @@
 use crate::client::*;
-use crate::db::*;
 use crate::enclave::mbtree::*;
 use hex;
 use hmac::Key;
+use parking_lot::RwLock;
 use ring::{hmac, rand};
-use rocksdb::{DBVector, Error, DB};
+use rocksdb::rocksdb::Writable;
+use rocksdb::{DBVector, DB};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct server {
-    db: db,
+    db_handler: Arc<RwLock<DB>>,
     sgx_counter: i32,
     hmac_key: Key,
     present_mbtree: Merklebtree,
     deleted_mbtree: Merklebtree,
 }
-
-pub struct db {}
 
 //hmacPayload is used to compute hmac
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -51,17 +50,16 @@ pub struct mbtree_payload {
     sgx_counter: i32,
 }
 
-impl db {
+impl server {
     fn put(&mut self, key: String, value: String) {
-        let path = "rocksdb";
-        let db = DB::open_default(path).unwrap();
-        db.put(key.as_bytes(), value.as_bytes()).unwrap();
+        let db = self.db_handler.clone();
+        db.write().put(key.as_bytes(), value.as_bytes()).unwrap();
     }
 
     fn get(&mut self, key: String) -> String {
-        let path = "rocksdb";
-        let db = DB::open_default(path).unwrap();
-        let r: Result<Option<DBVector>, Error> = db.get(key.as_str());
+        let db = self.db_handler.clone();
+        let db_read = db.read();
+        let r = db.read().get(key.as_str().as_ref());
         match r {
             Err(t) => return String::new(),
             Ok(t) => match t {
@@ -72,18 +70,20 @@ impl db {
     }
 
     fn delete(&mut self, key: String) {
-        let path = "rocksdb";
-        let db = DB::open_default(path).unwrap();
-        db.delete(key.as_bytes()).unwrap();
+        let db = self.db_handler.clone();
+        db.write().delete(key.as_bytes()).unwrap();
     }
 }
 
 pub fn new_server(key_value: Vec<u8>) -> server {
-    let db = db {};
+    let path = "rocksdb";
+    let db = DB::open_default(path).unwrap();
+
+    let db_handler = Arc::new(RwLock::new(db));
 
     let s_key = hmac::Key::new(hmac::HMAC_SHA256, key_value.as_ref());
     server {
-        db: db,
+        db_handler: db_handler,
         sgx_counter: 0,
         hmac_key: s_key,
         present_mbtree: new_mbtree(),
@@ -114,8 +114,8 @@ impl server {
     }
 
     pub fn veritasdb_get(&mut self, req: request) -> String {
-        let data = self.db.get(req.key.clone());
-        if data == "" {
+        let data = self.get(req.key.clone());
+        if data == "".to_string() {
             return String::new();
         }
         let sp: store_payload = serde_json::from_str(data.as_str()).unwrap();
@@ -153,7 +153,7 @@ impl server {
             ctr: get_result.version + 1,
         };
         let store_string = serde_json::to_string(&store_data).unwrap();
-        self.db.put(req.key.clone(), store_string.clone());
+        self.put(req.key.clone(), store_string.clone());
 
         //update present if there is no error
         self.present_mbtree.build_with_key_value(key_version {
@@ -190,7 +190,7 @@ impl server {
                 tag: tag_string,
             };
             let store_string = serde_json::to_string(&store_data).unwrap();
-            self.db.put(req.key.clone(), store_string);
+            self.put(req.key.clone(), store_string);
             self.present_mbtree.build_with_key_value(key_version {
                 key: req.key.clone(),
                 version: ctr,
@@ -200,11 +200,10 @@ impl server {
     }
 
     pub fn veritasdb_delete(&mut self, req: request) {
-        let get_result = self.db.get(req.key.clone());
+        let get_result = self.get(req.key.clone());
         if get_result == "" {
-
         } else {
-            self.db.delete(req.key.clone());
+            self.delete(req.key.clone());
             let sr = self.present_mbtree.search(req.key.clone());
             self.deleted_mbtree.build_with_key_value(key_version {
                 key: req.key.clone(),
