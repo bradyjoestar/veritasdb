@@ -18,7 +18,6 @@ pub struct server {
     hmac_key: Key,
     present_mbtree: Merklebtree,
     deleted_mbtree: Merklebtree,
-    sgx_data: sgx_private_data,
 }
 
 //hmacPayload is used to compute hmac
@@ -45,61 +44,6 @@ pub struct sgx_private_data {
     persisted_present_hmac: String,
     persisted_deleted_hash: String,
     persisted_deleted_hmac: String,
-}
-
-impl sgx_private_data {
-    pub fn init_present_hash(
-        &mut self,
-        branch: Vec<i32>,
-        nodes_map: HashMap<i32, Node<key_version>>,
-        index: i32,
-    ) {
-        self.persisted_present_hash = "".to_string();
-    }
-
-    pub fn recompute_present_hash(
-        &mut self,
-        value: key_version,
-        branch: Vec<i32>,
-        mut nodes_map: HashMap<i32, Node<key_version>>,
-        index: i32,
-    ) {
-        let node = nodes_map.get_mut(branch.last().unwrap()).unwrap();
-        node.content.remove(index as usize);
-        node.content.insert(index as usize, value);
-
-        let last_node = branch.last().unwrap();
-        recalculate_hash(&mut nodes_map, *last_node);
-
-        let node = nodes_map.get(&0).unwrap();
-        self.persisted_present_hash = node.hash.clone();
-    }
-    pub fn init_deleted_hash(
-        &mut self,
-        branch: Vec<i32>,
-        nodes_map: HashMap<i32, Node<key_version>>,
-        index: i32,
-    ) {
-        self.persisted_deleted_hash = "".to_string();
-    }
-
-    pub fn recompute_deleted_hash(
-        &mut self,
-        value: key_version,
-        branch: Vec<i32>,
-        mut nodes_map: HashMap<i32, Node<key_version>>,
-        index: i32,
-    ) {
-        let node = nodes_map.get_mut(branch.last().unwrap()).unwrap();
-        node.content.remove(index as usize);
-        node.content.insert(index as usize, value);
-
-        let last_node = branch.last().unwrap();
-        recalculate_hash(&mut nodes_map, *last_node);
-
-        let node = nodes_map.get(&0).unwrap();
-        self.persisted_present_hash = node.hash.clone();
-    }
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -140,14 +84,6 @@ pub fn new_server(key_value: Vec<u8>) -> server {
     let db_handler = Arc::new(RwLock::new(db));
 
     let s_key = hmac::Key::new(hmac::HMAC_SHA256, key_value.as_ref());
-    let sgx_data = sgx_private_data {
-        hmac_key: s_key.clone(),
-        sgx_counter: 0,
-        persisted_present_hash: "".to_string(),
-        persisted_present_hmac: "".to_string(),
-        persisted_deleted_hash: "".to_string(),
-        persisted_deleted_hmac: "".to_string(),
-    };
 
     server {
         db_handler,
@@ -155,7 +91,6 @@ pub fn new_server(key_value: Vec<u8>) -> server {
         hmac_key: s_key,
         present_mbtree: new_mbtree(),
         deleted_mbtree: new_mbtree(),
-        sgx_data,
     }
 }
 
@@ -195,10 +130,6 @@ impl server {
             },
             &mut self.present_mbtree.nodes,
         );
-        self.present_mbtree.nodes.iterator();
-        println!("branch: {:?}", branch);
-        println!("index: {}", index);
-        println!("nodes_map: {:?}", nodes_map);
 
         let sp: store_payload = serde_json::from_str(data.as_str()).unwrap();
         let hmac_data = hmac_payload {
@@ -311,33 +242,5 @@ impl server {
             Ok(t) => return true,
             Err(e) => return false,
         }
-    }
-}
-
-pub fn calculate_hash(node_id: i32, nodes: &mut HashMap<i32, Node<key_version>>) {
-    let mut hash = String::new();
-    let mut node = nodes.remove(&node_id).unwrap();
-    for i in node.content.iter() {
-        hash.push_str(i.calculate().as_str());
-    }
-    for i in node.children_id.iter() {
-        let child_node = nodes.get(i).unwrap();
-        hash.push_str(child_node.hash.as_str());
-    }
-    node.hash = hex::encode(digest::digest(&digest::SHA256, hash.as_ref()));
-    nodes.insert(node_id, node);
-}
-
-/// ReCalculateMerkleRoot update Merkleroot from node to root node.
-pub fn recalculate_hash(nodes: &mut HashMap<i32, Node<key_version>>, node_id: i32) {
-    let mut node = nodes.remove(&node_id).unwrap();
-    if node.node_id == 0 {
-        nodes.insert(node.node_id, node);
-        return calculate_hash(node_id, nodes);
-    } else {
-        let parent_id = node.parent_id;
-        nodes.insert(node.node_id, node);
-        calculate_hash(node_id, nodes);
-        return recalculate_hash(nodes, parent_id);
     }
 }

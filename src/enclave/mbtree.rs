@@ -109,6 +109,7 @@ impl Merklebtree {
     }
 
     pub fn build_with_key_value(&mut self, kv: key_version) {
+        println!("kv:{:?}",kv);
         self.mbtree.put(
             key_version {
                 key: kv.key,
