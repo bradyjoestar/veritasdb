@@ -18,10 +18,13 @@ pub struct response {
 }
 
 pub fn client_test(server: &mut server) {
-    initial_data(server);
-    modify_data(server);
+    //    initial_data(server);
+    //    get_data(server);
+    //    modify_data(server);
+    test_put_data(server);
 }
-pub fn initial_data(server: &mut server) {
+
+pub fn test_put_data(server: &mut server) {
     let req = request {
         req_type: "put".to_string(),
         key: "db".to_string(),
@@ -33,7 +36,59 @@ pub fn initial_data(server: &mut server) {
     println!("test{:?}", rsp);
 }
 
-pub fn modify_data(server: &mut server) {
+pub fn initial_data(server: &mut server) {
+    let req = request {
+        req_type: "put".to_string(),
+        key: "db".to_string(),
+        value: "proxy".to_string(),
+        present_root_hash: "".to_string(),
+        deleted_root_hash: "".to_string(),
+    };
+    let rsp = server.handle_req(req);
+    println!("test{:?}", rsp);
+
+    let req = request {
+        req_type: "put".to_string(),
+        key: "dba".to_string(),
+        value: "proxya".to_string(),
+        present_root_hash: "".to_string(),
+        deleted_root_hash: "".to_string(),
+    };
+    let rsp = server.handle_req(req);
+    println!("test{:?}", rsp);
+
+    let req = request {
+        req_type: "put".to_string(),
+        key: "dbb".to_string(),
+        value: "proxyb".to_string(),
+        present_root_hash: "".to_string(),
+        deleted_root_hash: "".to_string(),
+    };
+    let rsp = server.handle_req(req);
+    println!("test{:?}", rsp);
+
+    let req = request {
+        req_type: "put".to_string(),
+        key: "dbc".to_string(),
+        value: "proxyc".to_string(),
+        present_root_hash: "".to_string(),
+        deleted_root_hash: "".to_string(),
+    };
+    let rsp = server.handle_req(req);
+    println!("test{:?}", rsp);
+
+    let req = request {
+        req_type: "put".to_string(),
+        key: "dbd".to_string(),
+        value: "proxyd".to_string(),
+        present_root_hash: "".to_string(),
+        deleted_root_hash: "".to_string(),
+    };
+    let rsp = server.handle_req(req);
+    println!("test{:?}", rsp);
+}
+
+pub fn get_data(server: &mut server) {
     //try to get data
     let req = request {
         req_type: "get".to_string(),
@@ -44,7 +99,9 @@ pub fn modify_data(server: &mut server) {
     };
     let rsp = server.handle_req(req);
     println!("test{:?}", rsp);
+}
 
+pub fn modify_data(server: &mut server) {
     //try to insert data failed
     let req = request {
         req_type: "insert".to_string(),
